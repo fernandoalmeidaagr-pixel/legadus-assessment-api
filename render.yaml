@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: legadus-assessment-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn assessment_api:app
+    envVars:
+      - key: CLICKSIGN_TOKEN
+        sync: false          # preencha manualmente no painel do Render
+      - key: ASSESSMENT_API_SECRET
+        sync: false          # chave secreta para o Apps Script autenticar
+    plan: free
