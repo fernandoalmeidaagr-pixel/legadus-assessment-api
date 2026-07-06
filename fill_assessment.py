@@ -405,7 +405,14 @@ def enviar_clicksign(pdf_path: Path, dados: dict) -> str:
         adicionar_lista(doc_key, sk_socio, "receipt")
         print(f"📋 Cópia: {socio_nome} <{socio_email}>")
 
-        # 5. Enviar envelope
+    # 5. Fernando pessoal em cópia (monitoramento de assinaturas)
+    EMAIL_PESSOAL = "fernandoalmeidaagr@gmail.com"
+    sk_pessoal = criar_signer(EMAIL_PESSOAL, "Fernando Almeida")
+    adicionar_lista(doc_key, sk_pessoal, "receipt")
+    print(f"📧 Monitoramento: {EMAIL_PESSOAL}")
+
+
+        # 6. Enviar envelope
     r = requests.patch(f"{CLICKSIGN_BASE}/documents/{doc_key}/finish", params=params)
     # 422 = doc já iniciado automaticamente (auto_close=True via /lists)
     if r.status_code not in (200, 201, 204, 422):
