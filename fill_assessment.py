@@ -323,74 +323,72 @@ def enviar_clicksign(pdf_path: Path, dados: dict) -> str:
     doc_key = r.json()["document"]["key"]
     print(f"📄 Documento enviado ao Clicksign: {doc_key}")
 
-    # 2. Adicionar signatário — cliente (assina)
-    payload_sig = {
-        "list": {
-            "document_key": doc_key,
-            "signer": {
-                "email":             email_cliente,
-                "phone_number":      dados.get("tel_contratante", ""),
-                "auth_type":         "email",
-                "name":              nome_cliente,
-                "has_documentation": True,
-                "documentation":     dados.get("cpf_contratante", ""),
-            },
-            "sign_as": "sign",
-            "message": (
-                f"Olá, {nome_cliente.split()[0]}! "
-                "Segue o Questionário de Assessment Inicial da Legadus para sua assinatura. "
-                "Por favor, revise o documento e assine digitalmente."
-            ),
+    def criar_signer(email, name, cpf="", tel=""):
+        """Cria signatário via POST /signers e retorna seu key."""
+        signer_body = {
+            "email":              email,
+            "auths":              ["email"],
+            "name":               name,
+            "has_documentation":  bool(cpf),
         }
-    }
-    r = requests.post(f"{CLICKSIGN_BASE}/lists", json=payload_sig, params=params)
-    r.raise_for_status()
-    print(f"✅ Signatário: {nome_cliente} <{email_cliente}>")
+        if cpf:
+            signer_body["documentation"] = cpf
+        if tel:
+            signer_body["phone_number"] = tel
+        rs = requests.post(f"{CLICKSIGN_BASE}/signers",
+                           json={"signer": signer_body}, params=params)
+        rs.raise_for_status()
+        return rs.json()["signer"]["key"]
+
+    def adicionar_lista(doc_key, signer_key, sign_as, message=""):
+        """Adiciona signatário ao documento via POST /lists."""
+        body = {
+            "list": {
+                "document_key": doc_key,
+                "signer_key":   signer_key,
+                "sign_as":      sign_as,
+            }
+        }
+        if message:
+            body["list"]["message"] = message
+        rl = requests.post(f"{CLICKSIGN_BASE}/lists",
+                           json=body, params=params)
+        rl.raise_for_status()
+        return rl.json()
+
+    # 2. Criar signatário — cliente — e adicionar ao documento (assina)
+    cpf_cliente = dados.get("cpf_contratante", "").strip()
+    tel_cliente = dados.get("tel_contratante", "").strip()
+    sk_cliente = criar_signer(email_cliente, nome_cliente, cpf_cliente, tel_cliente)
+    adicionar_lista(
+        doc_key, sk_cliente, "sign",
+        f"Olá, {nome_cliente.split()[0]}! "
+        "Segue o Questionário de Assessment Inicial da Legadus para sua assinatura. "
+        "Por favor, revise o documento e assine digitalmente."
+    )
+    print(f"\u2705 Signatário: {nome_cliente} <{email_cliente}>")
 
     # 3. Cônjuge como signatário (opcional)
     email_conjuge = dados.get("email_conjuge", "")
     nome_conjuge  = dados.get("nome_conjuge", "")
     if email_conjuge and nome_conjuge:
-        payload_conj = {
-            "list": {
-                "document_key": doc_key,
-                "signer": {
-                    "email":             email_conjuge,
-                    "phone_number":      dados.get("tel_conjuge", ""),
-                    "auth_type":         "email",
-                    "name":              nome_conjuge,
-                    "has_documentation": True,
-                    "documentation":     dados.get("cpf_conjuge", ""),
-                },
-                "sign_as": "sign",
-                "message": (
-                    f"Olá, {nome_conjuge.split()[0]}! "
-                    "Segue o Questionário de Assessment Inicial da Legadus para sua assinatura."
-                ),
-            }
-        }
-        r = requests.post(f"{CLICKSIGN_BASE}/lists", json=payload_conj, params=params)
-        r.raise_for_status()
-        print(f"✅ Cônjuge: {nome_conjuge} <{email_conjuge}>")
+        cpf_conjuge = dados.get("cpf_conjuge", "").strip()
+        tel_conjuge = dados.get("tel_conjuge", "").strip()
+        sk_conjuge = criar_signer(email_conjuge, nome_conjuge, cpf_conjuge, tel_conjuge)
+        adicionar_lista(
+            doc_key, sk_conjuge, "sign",
+            f"Olá, {nome_conjuge.split()[0]}! "
+            "Segue o Questionário de Assessment Inicial da Legadus para sua assinatura."
+        )
+        print(f"\u2705 Cônjuge: {nome_conjuge} <{email_conjuge}>")
 
     # 4. Sócio Legadus em cópia (CC)
     if socio_email:
-        payload_cc = {
-            "list": {
-                "document_key": doc_key,
-                "signer": {
-                    "email":     socio_email,
-                    "name":      socio_nome,
-                    "auth_type": "email",
-                },
-                "sign_as": "cc",
-            }
-        }
-        r = requests.post(f"{CLICKSIGN_BASE}/lists", json=payload_cc, params=params)
-        r.raise_for_status()
-        print(f"📋 Cópia: {socio_nome} <{socio_email}>")
+        sk_socio = criar_signer(socio_email, socio_nome)
+        adicionar_lista(doc_key, sk_socio, "cc")
+        print(f"\u{1F4CB} Cópia: {socio_nome} <{socio_email}>")
 
-    # 5. Enviar envelope
+        # 5. Enviar envelope
     r = requests.patch(f"{CLICKSIGN_BASE}/documents/{doc_key}/finish", params=params)
     r.raise_for_status()
     print(f"🚀 Envelope enviado! Key: {doc_key}")
