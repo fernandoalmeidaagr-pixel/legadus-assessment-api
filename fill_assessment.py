@@ -4,7 +4,7 @@ fill_assessment.py
 Recebe dados coletados via Google Forms, preenche o PDF template do
 Assessment Legadus e envia o envelope via Clicksign:
   - Signatário: cliente (assina)
-  - Cópia:      sócio responsável (recebe documento finalizado)
+  - Cópia:      sócio responsável (recebe documento finalizahdo)
 
 Uso:
     python fill_assessment.py --dados dados_cliente.json
@@ -30,7 +30,7 @@ from pathlib import Path
 
 TEMPLATE_PDF = Path(__file__).parent / "Assessment_Template_Legadus.pdf"
 
-CLICKSIGN_TOKEN = "SEU_TOKEN_AQUI"   # substitua pelo token da conta Legadus
+CLICKSIGN_TOKEN = os.environ.get("CLICKSIGN_TOKEN", "SEU_TOKEN_AQUI")   # substitua pelo token da conta Legadus
 CLICKSIGN_BASE  = "https://app.clicksign.com/api/v1"
 
 PRAZO_DIAS = 30  # dias corridos para assinatura
