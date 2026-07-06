@@ -386,7 +386,7 @@ def enviar_clicksign(pdf_path: Path, dados: dict) -> str:
     if socio_email:
         sk_socio = criar_signer(socio_email, socio_nome)
         adicionar_lista(doc_key, sk_socio, "cc")
-        print(f"\u{1F4CB} Cópia: {socio_nome} <{socio_email}>")
+        print(f"📋 Cópia: {socio_nome} <{socio_email}>")
 
         # 5. Enviar envelope
     r = requests.patch(f"{CLICKSIGN_BASE}/documents/{doc_key}/finish", params=params)
