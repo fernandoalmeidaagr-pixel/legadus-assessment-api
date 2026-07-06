@@ -407,7 +407,9 @@ def enviar_clicksign(pdf_path: Path, dados: dict) -> str:
 
         # 5. Enviar envelope
     r = requests.patch(f"{CLICKSIGN_BASE}/documents/{doc_key}/finish", params=params)
-    r.raise_for_status()
+    # 422 = doc já iniciado automaticamente (auto_close=True via /lists)
+    if r.status_code not in (200, 201, 204, 422):
+        r.raise_for_status()
     print(f"🚀 Envelope enviado! Key: {doc_key}")
     return doc_key
 
