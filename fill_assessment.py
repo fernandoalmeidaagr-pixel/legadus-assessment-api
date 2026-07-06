@@ -323,18 +323,35 @@ def enviar_clicksign(pdf_path: Path, dados: dict) -> str:
     doc_key = r.json()["document"]["key"]
     print(f"📄 Documento enviado ao Clicksign: {doc_key}")
 
-    def criar_signer(email, name, cpf="", tel=""):
-        """Cria signatário via POST /signers e retorna seu key."""
+        def criar_signer(email, name, cpf="", tel=""):
+        """Cria signatário via POST /signers e retorna seu key.
+        CPF é validado algoritmicamente antes do envio.
+        Se inválido (ex: CPF de teste), omite has_documentation.
+        """
+        import re as _re
+        def _cpf_ok(c):
+            d = _re.sub(r'\D', '', c or '')
+            if len(d) != 11 or len(set(d)) == 1:
+                return False
+            for j in range(2):
+                s = sum(int(d[i]) * (10 + j - i) for i in range(9 + j))
+                r = (s * 10) % 11
+                if r == 10: r = 0
+                if r != int(d[9 + j]):
+                    return False
+            return True
+        cpf_valido = _cpf_ok(cpf)
+        tel_limpo = _re.sub(r'\D', '', tel or '')
         signer_body = {
             "email":              email,
             "auths":              ["email"],
             "name":               name,
-            "has_documentation":  bool(cpf),
+            "has_documentation":  cpf_valido,
         }
-        if cpf:
-            signer_body["documentation"] = cpf
-        if tel:
-            signer_body["phone_number"] = tel
+        if cpf_valido:
+            signer_body["documentation"] = _re.sub(r'\D', '', cpf)
+        if tel_limpo:
+            signer_body["phone_number"] = tel_limpo
         rs = requests.post(f"{CLICKSIGN_BASE}/signers",
                            json={"signer": signer_body}, params=params)
         rs.raise_for_status()
