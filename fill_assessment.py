@@ -323,7 +323,7 @@ def enviar_clicksign(pdf_path: Path, dados: dict) -> str:
     doc_key = r.json()["document"]["key"]
     print(f"📄 Documento enviado ao Clicksign: {doc_key}")
 
-        def criar_signer(email, name, cpf="", tel=""):
+    def criar_signer(email, name, cpf="", tel=""):
         """Cria signatário via POST /signers e retorna seu key.
         CPF é validado algoritmicamente antes do envio.
         Se inválido (ex: CPF de teste), omite has_documentation.
